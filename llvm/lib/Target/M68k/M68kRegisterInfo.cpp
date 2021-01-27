@@ -46,8 +46,8 @@ M68kRegisterInfo::M68kRegisterInfo(const M68kSubtarget &ST)
     // passes IP anyway, how this works?
     : M68kGenRegisterInfo(M68k::A0, 0, 0, M68k::PC), Subtarget(ST) {
   StackPtr = M68k::SP;
-  FramePtr = M68k::A6;
-  GlobalBasePtr = M68k::A5;
+  FramePtr = M68k::FP;
+  GlobalBasePtr = M68k::BP;
   BasePtr = M68k::A4;
 }
 

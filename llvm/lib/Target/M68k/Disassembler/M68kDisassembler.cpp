@@ -87,7 +87,7 @@ public:
 
 static unsigned RegisterDecode[] = {
     M68k::A0, M68k::A1, M68k::A2, M68k::A3,
-    M68k::A4, M68k::A5, M68k::A6, M68k::A7,
+    M68k::A4, M68k::BP, M68k::FP, M68k::SP,
     M68k::D0, M68k::D1, M68k::D2, M68k::D3,
     M68k::D4, M68k::D5, M68k::D6, M68k::D7,
 };

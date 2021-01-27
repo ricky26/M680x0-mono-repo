@@ -295,6 +295,35 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeM68kAsmParser() {
 #define GET_MATCHER_IMPLEMENTATION
 #include "M68kGenAsmMatcher.inc"
 
+static inline bool checkRegisterClass(unsigned RegNo, bool Data, bool Address, bool SP) {
+  switch (RegNo) {
+  case M68k::A0:
+  case M68k::A1:
+  case M68k::A2:
+  case M68k::A3:
+  case M68k::A4:
+  case M68k::BP:
+  case M68k::FP:
+    return Address;
+
+  case M68k::SP:
+    return SP;
+
+  case M68k::D0:
+  case M68k::D1:
+  case M68k::D2:
+  case M68k::D3:
+  case M68k::D4:
+  case M68k::D5:
+  case M68k::D6:
+  case M68k::D7:
+    return Data;
+
+  default:
+    llvm_unreachable("unexpected register type");
+    return false;
+  }
+}
 
 unsigned M68kAsmParser::validateTargetOperandClass(
     MCParsedAsmOperand &Op, unsigned Kind) {
@@ -311,16 +340,14 @@ unsigned M68kAsmParser::validateTargetOperandClass(
   case MCK_AR16:
   case MCK_AR32:
     if (Operand.isReg() &&
-        (Operand.getReg() >= M68k::A0) &&
-        (Operand.getReg() <= M68k::A7)) {
+        checkRegisterClass(Operand.getReg(), false, true, true)) {
       return Match_Success;
     }
     break;
 
   case MCK_AR32_NOSP:
     if (Operand.isReg() &&
-        (Operand.getReg() >= M68k::A0) &&
-        (Operand.getReg() <= M68k::A6)) {
+        checkRegisterClass(Operand.getReg(), false, true, false)) {
       return Match_Success;
     }
     break;
@@ -329,34 +356,33 @@ unsigned M68kAsmParser::validateTargetOperandClass(
   case MCK_DR16:
   case MCK_DR32:
     if (Operand.isReg() &&
-        (Operand.getReg() >= M68k::D0) &&
-        (Operand.getReg() <= M68k::D7)) {
+        checkRegisterClass(Operand.getReg(), true, false, false)) {
       return Match_Success;
     }
     break;
 
   case MCK_AR16_TC:
     if (Operand.isReg() &&
-        (Operand.getReg() >= M68k::A0) &&
-        (Operand.getReg() <= M68k::A1)) {
+        ((Operand.getReg() == M68k::A0) ||
+            (Operand.getReg() == M68k::A1))) {
       return Match_Success;
     }
     break;
 
   case MCK_DR16_TC:
     if (Operand.isReg() &&
-        (Operand.getReg() >= M68k::D0) &&
-        (Operand.getReg() <= M68k::D1)) {
+        ((Operand.getReg() == M68k::D0) ||
+            (Operand.getReg() == M68k::D1))) {
       return Match_Success;
     }
     break;
 
   case MCK_XR16_TC:
     if (Operand.isReg() &&
-        (((Operand.getReg() >= M68k::D0) &&
-            (Operand.getReg() <= M68k::D1)) ||
-        ((Operand.getReg() >= M68k::A0) &&
-            (Operand.getReg() <= M68k::A1)))) {
+        ((Operand.getReg() == M68k::D0) ||
+            (Operand.getReg() == M68k::D1) ||
+            (Operand.getReg() == M68k::A0) ||
+            (Operand.getReg() == M68k::A1))) {
       return Match_Success;
     }
     break;
@@ -368,19 +394,40 @@ unsigned M68kAsmParser::validateTargetOperandClass(
 bool M68kAsmParser::parseRegisterName(unsigned &RegNo, SMLoc Loc, StringRef RegisterName) {
   auto RegisterNameLower = RegisterName.lower();
 
-  // Parse simple general-purpose registgers.
+  // Parse simple general-purpose registers.
   if ((RegisterNameLower.size() == 2) && isdigit(RegisterNameLower[1])) {
-    unsigned RegOffset = (unsigned)(RegisterNameLower[1] - '0');
+    static unsigned RegistersByIndex[] = {
+        M68k::D0, M68k::D1, M68k::D2, M68k::D3,
+        M68k::D4, M68k::D5, M68k::D6, M68k::D7,
+        M68k::A0, M68k::A1, M68k::A2, M68k::A3,
+        M68k::A4, M68k::BP, M68k::FP, M68k::SP,
+    };
 
-    switch (RegisterNameLower[0]) {
-    case 'd':
-      RegNo = M68k::D0 + RegOffset;
-      return false;
+      switch (RegisterNameLower[0]) {
+      case 'd':
+      case 'a': {
+        unsigned IndexOffset = (RegisterNameLower[0] == 'a') ? 8 : 0;
+        unsigned RegIndex = (unsigned)(RegisterNameLower[1] - '0');
+        if (RegIndex < 8) {
+          RegNo = RegistersByIndex[IndexOffset + RegIndex];
+          return false;
+        }
+        break;
+      }
 
-    case 'a':
-      RegNo = M68k::A0 + RegOffset;
-      return false;
-    }
+      case 's':
+        if (RegisterNameLower[1] == 'p') {
+          RegNo = M68k::SP;
+          return false;
+        }
+        break;
+
+      case 'p':
+        if (RegisterNameLower[1] == 'c') {
+          RegNo = M68k::PC;
+          return false;
+        }
+      }
   }
 
   return Error(Loc, "invalid register name");
