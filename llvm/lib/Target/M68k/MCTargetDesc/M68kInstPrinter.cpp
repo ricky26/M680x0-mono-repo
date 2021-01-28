@@ -74,14 +74,16 @@ void M68kInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
 void M68kInstPrinter::printImmediate(const MCInst *MI, unsigned opNum,
                                      raw_ostream &O) {
   const MCOperand &MO = MI->getOperand(opNum);
-  assert(MO.isImm() && "printImmediate requires immediate");
+  O << '#';
 
-  int64_t Imm = MO.getImm();
-  if (Imm < 10240) {
-    O << '#' << Imm;
-  } else {
-    O << format("#$%0" PRIx64, Imm);
+  if (MO.isExpr()) {
+    MO.getExpr()->print(O, &MAI);
+    return;
   }
+
+  assert(MO.isImm() && "immediates must be immediates");
+  int64_t Imm = MO.getImm();
+  O << Imm;
 }
 
 void M68kInstPrinter::printMoveMask(const MCInst *MI, unsigned opNum,
@@ -195,8 +197,13 @@ void M68kInstPrinter::printARIIMem(const MCInst *MI, unsigned opNum,
 void M68kInstPrinter::printAbsMem(const MCInst *MI, unsigned opNum,
                                   raw_ostream &O) {
   const MCOperand &MO = MI->getOperand(opNum);
-  assert(MO.isImm());
 
+  if (MO.isExpr()) {
+    MO.getExpr()->print(O, &MAI);
+    return;
+  }
+
+  assert(MO.isImm() && "absolute memory addressing needs an immediate");
   O << format("$%0" PRIx64, (uint64_t)MO.getImm());
 }
 
