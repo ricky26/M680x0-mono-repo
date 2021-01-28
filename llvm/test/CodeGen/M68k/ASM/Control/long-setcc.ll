@@ -23,7 +23,7 @@ define i1 @t2(i64 %x) nounwind {
 
 
 ; x00: t3
-; x00: move.b #0, %d0
+; x00: move.b #0, d0
 ; x00: rts
 
 define i1 @t3(i32 %x) nounwind {

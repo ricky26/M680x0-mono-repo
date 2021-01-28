@@ -9,7 +9,7 @@
 --- # CollapseMOVEM_RM
 #
 # x00-LABEL: CollapseMOVEM_RM
-# x00:       movem.l (0,%sp), %d0-%d2,%d7,%a1-%a3,%a5
+# x00:       movem.l (0,sp), d0-d2,d7,a1-a3,a5
 name: CollapseMOVEM_RM
 body: |
   bb.0:
@@ -25,7 +25,7 @@ body: |
 ...
 #
 # x00-LABEL: CollapseMOVEM_RM_Reversed
-# x00:       movem.l (0,%sp), %d0-%d2,%d7,%a1-%a3,%a5
+# x00:       movem.l (0,sp), d0-d2,d7,a1-a3,a5
 name: CollapseMOVEM_RM_Reversed
 body: |
   bb.0:
@@ -41,14 +41,14 @@ body: |
 ...
 # This async reg/mem order is impossible to store with MOVEM
 # x00-LABEL: CollapseMOVEM_RM_ReversedStoreOrder
-# x00:       movem.l (0,%sp), %a5
-# x00:       movem.l (4,%sp), %a3
-# x00:       movem.l (8,%sp), %a2
-# x00:       movem.l (12,%sp), %a1
-# x00:       movem.l (16,%sp), %d7
-# x00:       movem.l (20,%sp), %d2
-# x00:       movem.l (24,%sp), %d1
-# x00:       movem.l (28,%sp), %d0
+# x00:       movem.l (0,sp), a5
+# x00:       movem.l (4,sp), a3
+# x00:       movem.l (8,sp), a2
+# x00:       movem.l (12,sp), a1
+# x00:       movem.l (16,sp), d7
+# x00:       movem.l (20,sp), d2
+# x00:       movem.l (24,sp), d1
+# x00:       movem.l (28,sp), d0
 name: CollapseMOVEM_RM_ReversedStoreOrder
 body: |
   bb.0:
@@ -65,7 +65,7 @@ body: |
 --- # CollapseMOVEM_MR
 #
 # x00-LABEL: CollapseMOVEM_MR
-# x00:       movem.l %d0-%d2,%d7,%a1-%a3,%a5, (0,%sp)
+# x00:       movem.l d0-d2,d7,a1-a3,a5, (0,sp)
 name: CollapseMOVEM_MR
 body: |
   bb.0:
@@ -82,11 +82,11 @@ body: |
 --- # CollapseMOVEM_Mixed
 #
 # x00-LABEL: CollapseMOVEM_Mixed
-# x00:       movem.l %d0-%d1, (0,%sp)
-# x00:       movem.l (8,%sp), %d2,%d7
-# x00:       movem.l %a1-%a2, (16,%sp)
-# x00:       movem.l (24,%sp), %a3
-# x00:       movem.l %a5, (28,%sp)
+# x00:       movem.l d0-d1, (0,sp)
+# x00:       movem.l (8,sp), d2,d7
+# x00:       movem.l a1-a2, (16,sp)
+# x00:       movem.l (24,sp), a3
+# x00:       movem.l a5, (28,sp)
 name: CollapseMOVEM_Mixed
 body: |
   bb.0:
@@ -103,7 +103,7 @@ body: |
 --- # CollapseMOVEM_Zero
 #
 # x00-LABEL: CollapseMOVEM_Zero
-# x00:       movem.l %d0-%d4, (-8,%sp)
+# x00:       movem.l d0-d4, (-8,sp)
 name: CollapseMOVEM_Zero
 body: |
   bb.0:
@@ -116,9 +116,9 @@ body: |
 ...
 #
 # x00-LABEL: CollapseMOVEM_Zero_Mixed
-# x00:       movem.l %d3, (4,%sp)
-# x00:       movem.l %d0-%d2, (-8,%sp)
-# x00:       movem.l %d4, (8,%sp)
+# x00:       movem.l d3, (4,sp)
+# x00:       movem.l d0-d2, (-8,sp)
+# x00:       movem.l d4, (8,sp)
 name: CollapseMOVEM_Zero_Mixed
 body: |
   bb.0:
@@ -132,7 +132,7 @@ body: |
 --- # CollapseMOVEM_Zero_Reversed
 #
 # x00-LABEL: CollapseMOVEM_Zero_Reversed
-# x00:       movem.l %d0-%d4, (-8,%sp)
+# x00:       movem.l d0-d4, (-8,sp)
 name: CollapseMOVEM_Zero_Reversed
 body: |
   bb.0:
@@ -145,11 +145,11 @@ body: |
 ...
 #
 # x00-LABEL: CollapseMOVEM_Zero_ReversedStoreOrder
-# x00:       movem.l %d0, (8,%sp)
-# x00:       movem.l %d1, (4,%sp)
-# x00:       movem.l %d2, (0,%sp)
-# x00:       movem.l %d3, (-4,%sp)
-# x00:       movem.l %d4, (-8,%sp)
+# x00:       movem.l d0, (8,sp)
+# x00:       movem.l d1, (4,sp)
+# x00:       movem.l d2, (0,sp)
+# x00:       movem.l d3, (-4,sp)
+# x00:       movem.l d4, (-8,sp)
 name: CollapseMOVEM_Zero_ReversedStoreOrder
 body: |
   bb.0:

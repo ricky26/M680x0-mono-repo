@@ -8,7 +8,7 @@ declare {i32, i1} @llvm.usub.with.overflow.i32(i32, i32)
 @no = internal constant [4 x i8] c"no\0A\00"
 
 ; x00-LABEL: func1:
-; x00:       sub.l (20,%sp)
+; x00:       sub.l (20,sp)
 ; x00-NEXT:  bvc
 define i1 @func1(i32 %v1, i32 %v2) nounwind {
 entry:
@@ -27,7 +27,7 @@ overflow:
 }
 
 ; x00-LABEL: func2:
-; x00:       sub.l (20,%sp)
+; x00:       sub.l (20,sp)
 ; x00-NEXT:  bcc
 define i1 @func2(i32 %v1, i32 %v2) nounwind {
 entry:

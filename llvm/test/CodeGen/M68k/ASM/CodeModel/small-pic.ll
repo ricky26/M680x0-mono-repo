@@ -7,11 +7,11 @@
 @src = external global i32
 
 ; x00-LABEL: test0:
-; x00:       move.l (dst@GOTPCREL,%pc), %a0
-; x00-NEXT:  move.l (ptr@GOTPCREL,%pc), %a1
-; x00-NEXT:  %a0, (%a1)
-; x00-NEXT:  move.l (src@GOTPCREL,%pc), %a1
-; x00-NEXT:  (%a1), (%a0)
+; x00:       move.l (dst@GOTPCREL,pc), a0
+; x00-NEXT:  move.l (ptr@GOTPCREL,pc), a1
+; x00-NEXT:  a0, (a1)
+; x00-NEXT:  move.l (src@GOTPCREL,pc), a1
+; x00-NEXT:  (a1), (a0)
 ; x00-NEXT:  rts
 define void @test0() nounwind {
 entry:
@@ -26,11 +26,11 @@ entry:
 @src2 = global i32 0
 
 ; x00-LABEL: test1:
-; x00:       move.l (dst2@GOTPCREL,%pc), %a0
-; x00-NEXT:  move.l (ptr2@GOTPCREL,%pc), %a1
-; x00-NEXT:  %a0, (%a1)
-; x00-NEXT:  move.l (src2@GOTPCREL,%pc), %a1
-; x00-NEXT:  (%a1), (%a0)
+; x00:       move.l (dst2@GOTPCREL,pc), a0
+; x00-NEXT:  move.l (ptr2@GOTPCREL,pc), a1
+; x00-NEXT:  a0, (a1)
+; x00-NEXT:  move.l (src2@GOTPCREL,pc), a1
+; x00-NEXT:  (a1), (a0)
 ; x00-NEXT:  rts
 define void @test1() nounwind {
 entry:
@@ -43,8 +43,8 @@ entry:
 declare i8* @malloc(i32)
 
 ; x00-LABEL: test2:
-; x00:       move.l #40, (%sp)
-; x00:  jsr (malloc@PLT,%pc)
+; x00:       move.l #40, (sp)
+; x00:  jsr (malloc@PLT,pc)
 define void @test2() nounwind {
 entry:
     %ptr = call i8* @malloc(i32 40)
@@ -55,11 +55,11 @@ entry:
 declare void(...)* @afoo(...)
 
 ; x00-LABEL: test3:
-; x00:       jsr (afoo@PLT,%pc)
-; x00-NEXT:  move.l %d0, %a0
-; x00-NEXT:  move.l (pfoo@GOTPCREL,%pc), %a1
-; x00-NEXT:  move.l %a0, (%a1)
-; x00-NEXT:  jsr (%a0)
+; x00:       jsr (afoo@PLT,pc)
+; x00-NEXT:  move.l d0, a0
+; x00-NEXT:  move.l (pfoo@GOTPCREL,pc), a1
+; x00-NEXT:  move.l a0, (a1)
+; x00-NEXT:  jsr (a0)
 define void @test3() nounwind {
 entry:
     %tmp = call void(...)*(...) @afoo()
@@ -72,7 +72,7 @@ entry:
 declare void @foo(...)
 
 ; x00-LABEL: test4:
-; x00:       jsr (foo@PLT,%pc)
+; x00:       jsr (foo@PLT,pc)
 define void @test4() nounwind {
 entry:
     call void(...) @foo()
@@ -84,9 +84,9 @@ entry:
 @src6 = internal global i32 0
 
 ; x00-LABEL: test5:
-; x00        lea (dst6,%pc), %a0
-; x00        move.l %a0, (ptr6,%pc)
-; x00        move.l (src6,%pc), (%a0)
+; x00        lea (dst6,pc), a0
+; x00        move.l a0, (ptr6,pc)
+; x00        move.l (src6,pc), (a0)
 define void @test5() nounwind {
 entry:
     store i32* @dst6, i32** @ptr6
@@ -116,15 +116,15 @@ entry:
 ;
 ; x00-LABEL: test7:
 ;
-; x00:       move.l (4,%sp), %d0
-; x00-NEXT:  add.l #-1, %d0
-; x00-NEXT:  move.l %d0, %d1
-; x00-NEXT:  sub.l #12, %d1
+; x00:       move.l (4,sp), d0
+; x00-NEXT:  add.l #-1, d0
+; x00-NEXT:  move.l d0, d1
+; x00-NEXT:  sub.l #12, d1
 ; x00-NEXT:  bhi .LBB[[FUNC6:[_0-9]+]]
-; x00:       lsl.l #2, %d0
-; x00-NEXT:  lea (.LJTI{{.*}}_0,%pc), %a0
-; x00-NEXT:  add.l (0,%a0,%d0), %a0
-; x00-NEXT:  jmp (%a0)
+; x00:       lsl.l #2, d0
+; x00-NEXT:  lea (.LJTI{{.*}}_0,pc), a0
+; x00-NEXT:  add.l (0,a0,d0), a0
+; x00-NEXT:  jmp (a0)
 ;
 ; x00:       .LBB[[FUNC6]]
 ; x00-NEXT:  bra foo6@PLT

@@ -4,8 +4,8 @@
 ; Pass first two arguments in registers %d0 and %d1
 
 ; x00-LABEL: foo_inreg:
-; x00:       move.l %d0, [[Reg:%a[0-7]]]
-; x00:       move.l %d1, ([[Reg]])
+; x00:       move.l d0, [[Reg:a[0-7]]]
+; x00:       move.l d1, ([[Reg]])
 ; x00:       rts
 
 define void @foo_inreg(i32* nocapture inreg %out, i32 inreg %in) nounwind {
@@ -15,8 +15,8 @@ entry:
 }
 
 ; x00-LABEL: bar_inreg:
-; x00-DAG:   move.l %d0, [[Out:%a[0-7]]]
-; x00-DAG:   move.l %d1, [[In:%a[0-7]]]
+; x00-DAG:   move.l d0, [[Out:a[0-7]]]
+; x00-DAG:   move.l d1, [[In:a[0-7]]]
 ; x00:       move.l ([[In]]), ([[Out]])
 ; x00:       rts
 

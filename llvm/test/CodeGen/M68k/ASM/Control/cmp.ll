@@ -1,7 +1,7 @@
 ; RUN: llc < %s -mtriple=m68k-linux-gnu -verify-machineinstrs | FileCheck %s --check-prefix=x00
 
 ; x00-LABEL: test1:
-; x00: cmpi.l #0, (%a0)
+; x00: cmpi.l #0, (a0)
 ; x00: beq
 define i32 @test1(i32* %y) nounwind {
  %tmp = load i32, i32* %y  ; <i32> [#uses=1]
@@ -52,10 +52,10 @@ cond_true:  ; preds = %0
 
 ; x00-LABEL: test3:
 ; x00:       or.l
-; x00-NEXT:  seq %d0
-; x00-NEXT:  move.l %d0, %d1
-; x00-NEXT:  and.l #255, %d1
-; x00-NEXT:  move.l #0, %d0
+; x00-NEXT:  seq d0
+; x00-NEXT:  move.l d0, d1
+; x00-NEXT:  and.l #255, d1
+; x00-NEXT:  move.l #0, d0
 define i64 @test3(i64 %x) nounwind {
   %t = icmp eq i64 %x, 0
   %r = zext i1 %t to i64
@@ -73,8 +73,8 @@ define i64 @test4(i64 %x) nounwind {
 }
 
 ; x00-LABEL: test6:
-; x00:       move.l (12,%sp), %d0
-; x00:       or.l (8,%sp), %d0
+; x00:       move.l (12,sp), d0
+; x00:       or.l (8,sp), d0
 ; x00:       beq
 define i32 @test6() nounwind align 2 {
   %A = alloca {i64, i64}, align 8
@@ -90,7 +90,7 @@ F:
 }
 
 ; x00-LABEL: test7:
-; x00:       cmpi.l #0, (4,%sp)
+; x00:       cmpi.l #0, (4,sp)
 ; x00:       seq
 define i32 @test7(i64 %res) nounwind {
 entry:
@@ -100,9 +100,9 @@ entry:
 }
 
 ; x00-LABEL: test8:
-; x00:       move.l (4,%sp), %d0
-; x00:       sub.l #3, %d0
-; x00:       scs %d0
+; x00:       move.l (4,sp), d0
+; x00:       sub.l #3, d0
+; x00:       scs d0
 define i32 @test8(i64 %res) nounwind {
 entry:
   %lnot = icmp ult i64 %res, 12884901888
@@ -111,9 +111,9 @@ entry:
 }
 
 ; x00-LABEL: test11:
-; x00:       move.l (4,%sp), %d0
-; x00:       and.l #-32768, %d0
-; x00:       eori.l #32768, %d0
+; x00:       move.l (4,sp), d0
+; x00:       and.l #-32768, d0
+; x00:       eori.l #32768, d0
 ; x00:       seq
 define i32 @test11(i64 %l) nounwind {
 entry:
@@ -124,7 +124,7 @@ entry:
 }
 
 ; x00-LABEL: test13:
-; x00: move.b (7,%sp)
+; x00: move.b (7,sp)
 ; x00: and.b #8
 ; x00: cmpi.b #0
 define i32 @test13(i32 %mask, i32 %base, i32 %intra) {
@@ -160,7 +160,7 @@ define zeroext i1 @test15(i32 %bf.load, i32 %n) {
 
 ; x00-LABEL: test16:
 ; x00:       move.w #15
-; x00:       move.w (6,%sp), %d0
+; x00:       move.w (6,sp), d0
 ; x00:       lsr.w
 ; x00:       eori.b #1
 define i8 @test16(i16 signext %L) {

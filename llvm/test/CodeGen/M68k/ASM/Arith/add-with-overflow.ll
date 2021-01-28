@@ -41,9 +41,9 @@ carry:
 }
 
 ; x00-LABEL: test7:
-; x00:       move.l (4,%sp), %d0
-; x00-NEXT:  add.l  (8,%sp), %d0
-; x00-NEXT:  scs %d1
+; x00:       move.l (4,sp), d0
+; x00-NEXT:  add.l  (8,sp), d0
+; x00-NEXT:  scs d1
 ; x00-NEXT:  rts
 define {i32, i1} @test7(i32 %v1, i32 %v2) nounwind {
   %t = call {i32, i1} @llvm.uadd.with.overflow.i32(i32 %v1, i32 %v2)

@@ -4,11 +4,11 @@
 
 ; x00-LABEL: t1:
 ; x00:       move.w
-; x00:       and.l #65535, %d0
-; x00:       sub.l #26, %d0
-; x00:       shi %d0
-; x00:       and.l #255, %d0
-; x00:       lsl.l #5, %d0
+; x00:       and.l #65535, d0
+; x00:       sub.l #26, d0
+; x00:       shi d0
+; x00:       and.l #255, d0
+; x00:       lsl.l #5, d0
 
 define zeroext i16 @t1(i16 zeroext %x) nounwind readnone ssp {
 entry:
@@ -20,11 +20,11 @@ entry:
 
 ; x00-LABEL: t2:
 ; x00:       move.w
-; x00:       and.l #65535, %d0
-; x00:       sub.l #26, %d0
-; x00:       scs %d0
-; x00:       and.l #255, %d0
-; x00:       lsl.l #5, %d0
+; x00:       and.l #65535, d0
+; x00:       sub.l #26, d0
+; x00:       scs d0
+; x00:       and.l #255, d0
+; x00:       lsl.l #5, d0
 
 define zeroext i16 @t2(i16 zeroext %x) nounwind readnone ssp {
 entry:
@@ -34,9 +34,9 @@ entry:
 }
 
 ; x00-LABEL: t3:
-; x00:       move.l #0, %d2
-; x00:       sub.l #18, %d1
-; x00:       subx.l %d2, %d0
+; x00:       move.l #0, d2
+; x00:       sub.l #18, d1
+; x00:       subx.l d2, d0
 ; x00:       scs
 ; x00:       and.l
 ; x00:       lsl.l

@@ -2,9 +2,9 @@
 
 ; Function Attrs: norecurse nounwind readnone
 ; x00-LABEL c_isspace:
-; x00: move.l #8388639, %d0
-; x00: lsr.l %d1, %d0
-; x00: and.l #1, %d0
+; x00: move.l #8388639, d0
+; x00: lsr.l d1, d0
+; x00: and.l #1, d0
 define zeroext i1 @c_isspace(i32 %c) local_unnamed_addr #0 {
 entry:
   %switch.tableidx = add i32 %c, -9

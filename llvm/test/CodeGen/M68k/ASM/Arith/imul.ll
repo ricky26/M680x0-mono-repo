@@ -119,7 +119,7 @@ define i32 @mul0_32(i32 %A) {
 }
 
 ; x00-LABEL: mul4294967295_32:
-; x00: neg.l %d0
+; x00: neg.l d0
 define i32 @mul4294967295_32(i32 %A) {
     %mul = mul i32 %A, 4294967295
     ret i32 %mul
@@ -127,8 +127,8 @@ define i32 @mul4294967295_32(i32 %A) {
 
 ; NOTE: If returning a 64-bit integer, d0 will be the higher 32-bit!
 ; x00-LABEL: mul18446744073709551615_64:
-; x00: neg.l %d1
-; x00: negx.l %d0
+; x00: neg.l d1
+; x00: negx.l d0
 ; x00: rts
 define i64 @mul18446744073709551615_64(i64 %A) {
     %mul = mul i64 %A, 18446744073709551615

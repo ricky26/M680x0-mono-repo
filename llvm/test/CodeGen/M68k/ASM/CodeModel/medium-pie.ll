@@ -22,11 +22,11 @@ define void @foo() {
 
 
 ; x00-LABEL: bar:
-; x00:       jsr  (foo,%pc)
-; x00:       jsr  (weak_odr_foo,%pc)
-; x00:       jsr  (weak_foo,%pc)
-; x00:       jsr  (internal_foo,%pc)
-; x00:       jsr  (ext_baz@PLT,%pc)
+; x00:       jsr  (foo,pc)
+; x00:       jsr  (weak_odr_foo,pc)
+; x00:       jsr  (weak_foo,pc)
+; x00:       jsr  (internal_foo,pc)
+; x00:       jsr  (ext_baz@PLT,pc)
 define void @bar() {
 entry:
   call void @foo()

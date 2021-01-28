@@ -5,7 +5,7 @@ declare {i32, i1} @llvm.umul.with.overflow.i32(i32 %a, i32 %b)
 ; x00-LABEL: a:
 ; x00-NOT:   asr
 ; x00:       jsr __muldi3
-; x00-NEXT   cmpi.l #0, %d1
+; x00-NEXT   cmpi.l #0, d1
 ; x00-NEXT   sne
 define i1 @a(i32 %x)  nounwind {
   %res = call {i32, i1} @llvm.umul.with.overflow.i32(i32 %x, i32 3)
