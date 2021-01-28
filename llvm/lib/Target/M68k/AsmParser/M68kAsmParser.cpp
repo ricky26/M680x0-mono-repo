@@ -89,6 +89,9 @@ class M68kOperand : public MCParsedAsmOperand {
     Kind_Token,
     Kind_Reg,
     Kind_Imm,
+    Kind_Expr,
+    Kind_AddrImm,
+    Kind_AddrExpr,
 
     // Complex operands
     Kind_ARI,
@@ -113,6 +116,7 @@ class M68kOperand : public MCParsedAsmOperand {
     unsigned RegNo;
     uint64_t Imm;
     MemOp Mem;
+    const MCExpr* Expr;
   };
 
 public:
@@ -120,7 +124,9 @@ public:
       : Base(), Kind(Kind), Start(Start), End(End) {}
 
   bool isToken() const override { return Kind == Kind_Token; }
-  bool isImm() const override { return Kind == Kind_Imm; }
+  bool isImm() const override {
+    return (Kind == Kind_Imm) || (Kind == Kind_Expr);
+  }
   bool isReg() const override { return Kind == Kind_Reg; }
   bool isMem() const override { return false; }
 
@@ -150,6 +156,11 @@ public:
     assert(isImm() && "wrong oeprand kind");
     assert((N == 1) && "can only handle one register operand");
 
+    if (Kind == Kind_Expr) {
+      Inst.addOperand(MCOperand::createExpr(Expr));
+      return;
+    }
+
     Inst.addOperand(MCOperand::createImm(Imm));
   }
 
@@ -169,25 +180,44 @@ public:
 
   // MxImm
   void addMxImmOperands(MCInst &Inst, unsigned N) const {
-    Inst.addOperand(MCOperand::createImm(Imm));
+    addImmOperands(Inst, N);
   }
-  bool isMxImm() const { return Kind == Kind_Imm; }
+  bool isMxImm() const { return isImm(); }
   static std::unique_ptr<M68kOperand> createImm(
       int64_t Imm, SMLoc Start, SMLoc End) {
     auto Op = std::make_unique<M68kOperand>(Kind_Imm, Start, End);
     Op->Imm = Imm;
     return Op;
   }
+  static std::unique_ptr<M68kOperand> createExpr(
+      const MCExpr* Expr, SMLoc Start, SMLoc End) {
+    auto Op = std::make_unique<M68kOperand>(Kind_Expr, Start, End);
+    Op->Expr = Expr;
+    return Op;
+  }
 
   // Addr
   void addAddrOperands(MCInst &Inst, unsigned N) const {
+    if (Kind == Kind_AddrExpr) {
+      Inst.addOperand(MCOperand::createExpr(Expr));
+      return;
+    }
+
     Inst.addOperand(MCOperand::createImm(Imm));
   }
-  bool isAddr() const { return Kind == Kind_Imm; }
-  static std::unique_ptr<M68kOperand> createAddr(
+  bool isAddr() const {
+    return Kind == Kind_AddrImm || Kind == Kind_AddrExpr;
+  }
+  static std::unique_ptr<M68kOperand> createAddrImm(
       int64_t Imm, SMLoc Start, SMLoc End) {
-    auto Op = std::make_unique<M68kOperand>(Kind_Imm, Start, End);
+    auto Op = std::make_unique<M68kOperand>(Kind_AddrImm, Start, End);
     Op->Imm = Imm;
+    return Op;
+  }
+  static std::unique_ptr<M68kOperand> createAddrExpr(
+      const MCExpr* Expr, SMLoc Start, SMLoc End) {
+    auto Op = std::make_unique<M68kOperand>(Kind_AddrExpr, Start, End);
+    Op->Expr = Expr;
     return Op;
   }
 
@@ -302,8 +332,8 @@ static inline bool checkRegisterClass(unsigned RegNo, bool Data, bool Address, b
   case M68k::A2:
   case M68k::A3:
   case M68k::A4:
-  case M68k::BP:
-  case M68k::FP:
+  case M68k::A5:
+  case M68k::A6:
     return Address;
 
   case M68k::SP:
@@ -400,7 +430,7 @@ bool M68kAsmParser::parseRegisterName(unsigned &RegNo, SMLoc Loc, StringRef Regi
         M68k::D0, M68k::D1, M68k::D2, M68k::D3,
         M68k::D4, M68k::D5, M68k::D6, M68k::D7,
         M68k::A0, M68k::A1, M68k::A2, M68k::A3,
-        M68k::A4, M68k::BP, M68k::FP, M68k::SP,
+        M68k::A4, M68k::A5, M68k::A6, M68k::SP,
     };
 
       switch (RegisterNameLower[0]) {
@@ -410,7 +440,7 @@ bool M68kAsmParser::parseRegisterName(unsigned &RegNo, SMLoc Loc, StringRef Regi
         unsigned RegIndex = (unsigned)(RegisterNameLower[1] - '0');
         if (RegIndex < 8) {
           RegNo = RegistersByIndex[IndexOffset + RegIndex];
-          return false;
+          return true;
         }
         break;
       }
@@ -418,19 +448,19 @@ bool M68kAsmParser::parseRegisterName(unsigned &RegNo, SMLoc Loc, StringRef Regi
       case 's':
         if (RegisterNameLower[1] == 'p') {
           RegNo = M68k::SP;
-          return false;
+          return true;
         }
         break;
 
       case 'p':
         if (RegisterNameLower[1] == 'c') {
           RegNo = M68k::PC;
-          return false;
+          return true;
         }
       }
   }
 
-  return Error(Loc, "invalid register name");
+  return false;
 }
 
 OperandMatchResultTy M68kAsmParser::parseRegister(unsigned &RegNo) {
@@ -439,7 +469,7 @@ OperandMatchResultTy M68kAsmParser::parseRegister(unsigned &RegNo) {
   }
 
   auto RegisterName = Parser.getTok().getString();
-  if(parseRegisterName(RegNo, Parser.getLexer().getLoc(), RegisterName)) {
+  if(!parseRegisterName(RegNo, Parser.getLexer().getLoc(), RegisterName)) {
     return MatchOperand_NoMatch;
   }
 
@@ -471,35 +501,32 @@ OperandMatchResultTy M68kAsmParser::parseMxImm(OperandVector &Operands) {
   SMLoc Start = getLexer().getLoc();
   Parser.Lex();
 
-  if (getLexer().isNot(AsmToken::Integer)) {
-    Error(getLexer().getLoc(), "unexpected token parsing immediate");
+  SMLoc End;
+  const MCExpr* Expr;
+
+  if (parsePrimaryExpr(Expr, End)) {
     return MatchOperand_ParseFail;
   }
 
-  int64_t Imm;
-  if (Parser.parseIntToken(Imm, "unexpected character parsing Immediate")) {
-    return MatchOperand_ParseFail;
-  }
-
-  Parser.Lex();
-  Operands.push_back(M68kOperand::createImm(Imm, Start, getLexer().getLoc()));
+  Operands.push_back(M68kOperand::createExpr(Expr, Start, End));
   return MatchOperand_Success;
 }
 
 OperandMatchResultTy M68kAsmParser::parseAddr(OperandVector &Operands) {
-  if (getLexer().isNot(AsmToken::Integer)) {
+  SMLoc Start = getLexer().getLoc();
+  SMLoc End;
+  const MCExpr* Expr;
+
+  const AsmToken& Tok = getLexer().getTok();
+  if (Tok.isNot(AsmToken::Identifier) && Tok.isNot(AsmToken::Integer)) {
     return MatchOperand_NoMatch;
   }
-  SMLoc Start = getLexer().getLoc();
-  Parser.Lex();
 
-  int64_t Imm;
-  if (Parser.parseIntToken(Imm, "unexpected character parsing Immediate")) {
+  if (parsePrimaryExpr(Expr, End)) {
     return MatchOperand_ParseFail;
   }
 
-  Parser.Lex();
-  Operands.push_back(M68kOperand::createAddr(Imm, Start, getLexer().getLoc()));
+  Operands.push_back(M68kOperand::createAddrExpr(Expr, Start, End));
   return MatchOperand_Success;
 }
 
@@ -677,7 +704,6 @@ bool M68kAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
     }
 
     // Add custom operand formats here...
-
     SMLoc Loc = getLexer().getLoc();
     Parser.eatToEndOfStatement();
     return Error(Loc, "unexpected token parsing operands");
@@ -757,6 +783,14 @@ void M68kOperand::print(raw_ostream &OS) const {
 
   case Kind_Reg:
     OS << "register " << RegNo;
+    break;
+
+  case Kind_Imm:
+    OS << "immediate " << Imm;
+    break;
+
+  case Kind_Expr:
+    OS << "expression " << Expr->getKind();
     break;
 
   case Kind_ARI:

@@ -180,16 +180,16 @@ static inline bool isAddressRegister(unsigned RegNo) {
   case M68k::WA2:
   case M68k::WA3:
   case M68k::WA4:
-  case M68k::WBP:
-  case M68k::WFP:
+  case M68k::WA5:
+  case M68k::WA6:
   case M68k::WSP:
   case M68k::A0:
   case M68k::A1:
   case M68k::A2:
   case M68k::A3:
   case M68k::A4:
-  case M68k::BP:
-  case M68k::FP:
+  case M68k::A5:
+  case M68k::A6:
   case M68k::SP:
     return true;
   default:
@@ -232,9 +232,9 @@ static inline unsigned getMaskedSpillRegister(unsigned order) {
   case 12:
     return M68k::A4;
   case 13:
-    return M68k::BP;
+    return M68k::A5;
   case 14:
-    return M68k::FP;
+    return M68k::A6;
   case 15:
     return M68k::SP;
   }

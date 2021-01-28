@@ -113,5 +113,5 @@ def CC_M68k : CallingConv<[
 def CSR_NoRegs : CalleeSavedRegs<(add)>;
 
 def CSR_STD : CalleeSavedRegs<(add D2, D3, D4, D5, D6, D7,
-                                   A2, A3, A4, BP, FP)>;
+                                   A2, A3, A4, A5, A6)>;
 

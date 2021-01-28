@@ -65,8 +65,8 @@ defm A1 : MxAddressRegister<1, "a1">;
 defm A2 : MxAddressRegister<2, "a2">;
 defm A3 : MxAddressRegister<3, "a3">;
 defm A4 : MxAddressRegister<4, "a4">;
-defm BP : MxAddressRegister<5, "a5", ["bp"]>;
-defm FP : MxAddressRegister<6, "a6", ["fp"]>;
+defm A5 : MxAddressRegister<5, "a5", ["bp"]>;
+defm A6 : MxAddressRegister<6, "a6", ["fp"]>;
 defm SP : MxAddressRegister<7, "sp", ["usp", "ssp", "isp", "a7"]>;
 
 // TODO get rid of "pseudo" registers and use just MxReg variants and use
@@ -95,10 +95,10 @@ def DR16 : MxRegClass<[i16], 16, (sequence "WD%u", 0, 7)>;
 def DR32 : MxRegClass<[i32], 32, (sequence "D%u",  0, 7)>;
 
 // Address Registers
-def AR16 : MxRegClass<[i16], 16, (add WA0, WA1, WA2, WA3, WA4, WBP, WFP, WSP)>;
-def AR32 : MxRegClass<[i32], 32, (add A0, A1, A2, A3, A4, BP, FP, SP)>;
+def AR16 : MxRegClass<[i16], 16, (add WA0, WA1, WA2, WA3, WA4, WA5, WA6, WSP)>;
+def AR32 : MxRegClass<[i32], 32, (add A0, A1, A2, A3, A4, A5, A6, SP)>;
 
-def AR32_NOSP : MxRegClass<[i32], 32, (add A0, A1, A2, A3, A4, BP, FP)>;
+def AR32_NOSP : MxRegClass<[i32], 32, (add A0, A1, A2, A3, A4, A5, A6)>;
 
 // Index Register Classes
 // FIXME try alternative ordering like `D0, D1, A0, A1, ...`
@@ -128,4 +128,4 @@ def XR32_TC : MxRegClass<[i32], 32, (add DR32_TC, AR32_TC)>;
 
 // These classes provide spill/restore order if used with MOVEM instruction
 def SPILL   : MxRegClass<[i32], 32, (add XR32)>;
-def SPILL_R : MxRegClass<[i32], 32, (add SP, FP, BP, A4, A3, A2, A1, A0, D7, D6, D5, D4, D3, D2, D1, D0)>;
+def SPILL_R : MxRegClass<[i32], 32, (add SP, A6, A5, A4, A3, A2, A1, A0, D7, D6, D5, D4, D3, D2, D1, D0)>;
