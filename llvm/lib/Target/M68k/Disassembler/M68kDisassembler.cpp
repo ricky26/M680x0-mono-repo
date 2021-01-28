@@ -61,8 +61,6 @@ struct M68kInstructionLookup {
 
 /// A disassembler class for M68k.
 class M68kDisassembler : public MCDisassembler {
-  typedef SmallVector<unsigned, 6> RegisterList;
-
   MCInstrInfo* MCII;
   std::vector<M68kInstructionLookup> Lookups;
 
@@ -78,17 +76,16 @@ public:
                               ArrayRef<uint8_t> Bytes, uint64_t Address,
                               raw_ostream &CStream) const override;
   void decodeReg(MCInst &Instr, unsigned int Bead,
-                 uint64_t Value, unsigned &NumRead, RegisterList &Registers) const;
+                 uint64_t Value, unsigned &NumRead, unsigned &Scratch) const;
   void decodeImm(MCInst &Instr, unsigned int Bead,
-                 uint64_t Value, unsigned &NumRead) const;
-  unsigned int getOperandRegIndex(MCInst &Instr, unsigned int Bead) const;
-  unsigned int getOperandImmIndex(MCInst &Instr, unsigned int Bead) const;
-  MCOperand &getOperandImmAtIndex(MCInst &Instr, unsigned int Bead) const;
+                 uint64_t Value, unsigned &NumRead, unsigned &Scratch) const;
+  unsigned int getRegOperandIndex(MCInst &Instr, unsigned int Bead) const;
+  unsigned int getImmOperandIndex(MCInst &Instr, unsigned int Bead) const;
 };
 
 static unsigned RegisterDecode[] = {
     M68k::A0, M68k::A1, M68k::A2, M68k::A3,
-    M68k::A4, M68k::BP, M68k::FP, M68k::SP,
+    M68k::A4, M68k::A5, M68k::A6, M68k::SP,
     M68k::D0, M68k::D1, M68k::D2, M68k::D3,
     M68k::D4, M68k::D5, M68k::D6, M68k::D7,
 };
@@ -226,7 +223,7 @@ void M68kDisassembler::buildBeadTable() {
 #endif
 }
 
-unsigned M68kDisassembler::getOperandRegIndex(MCInst &Instr, unsigned Bead) const {
+unsigned M68kDisassembler::getRegOperandIndex(MCInst &Instr, unsigned Bead) const {
   auto Ext = Bead >> 4;
 
   const MCInstrDesc &Desc = MCII->get(Instr.getOpcode());
@@ -246,7 +243,7 @@ unsigned M68kDisassembler::getOperandRegIndex(MCInst &Instr, unsigned Bead) cons
   return MIOpIdx;
 }
 
-unsigned M68kDisassembler::getOperandImmIndex(MCInst &Instr, unsigned Bead) const {
+unsigned M68kDisassembler::getImmOperandIndex(MCInst &Instr, unsigned Bead) const {
   auto Ext = Bead >> 4;
 
   const MCInstrDesc &Desc = MCII->get(Instr.getOpcode());
@@ -266,31 +263,25 @@ unsigned M68kDisassembler::getOperandImmIndex(MCInst &Instr, unsigned Bead) cons
   return MIOpIdx;
 }
 
-MCOperand& M68kDisassembler::getOperandImmAtIndex(MCInst &Instr, unsigned Bead) const {
-  return Instr.getOperand(getOperandImmIndex(Instr, Bead));
-}
-
 void M68kDisassembler::decodeReg(
-    MCInst &Instr, unsigned Bead, uint64_t Value,
-    unsigned &NumRead, RegisterList &Registers) const {
+    MCInst &Instr, unsigned Bead,
+    uint64_t Value, unsigned &NumRead,
+    unsigned &Scratch) const {
   unsigned Op = Bead & 0xf;
-  unsigned OpIdx = getOperandRegIndex(Instr, Bead);
-  Registers[OpIdx] = Registers[OpIdx] | 0x10;
-
-  LLVM_DEBUG(errs() << format("decodeReg %x >> %d - %x\n",
+  LLVM_DEBUG(errs() << format("decodeReg %" PRIx64 " >> %d - %x\n",
                               Value, (unsigned)NumRead, Bead));
 
   if (Op != M68kBeads::DA) {
-    Registers[OpIdx] = (Registers[OpIdx] &~ 7) | ((Value >> NumRead) & 7);
+    Scratch = (Scratch &~ 7) | ((Value >> NumRead) & 7);
     NumRead += 3;
   }
 
   if (Op != M68kBeads::Reg) {
     bool DA = (Op != M68kBeads::DReg) && ((Value >> NumRead) & 1);
     if (!DA) {
-      Registers[OpIdx] |= 8;
+      Scratch |= 8;
     } else {
-      Registers[OpIdx] &=~ 8;
+      Scratch &=~ 8;
     }
 
     if (Op != M68kBeads::DReg) {
@@ -300,11 +291,10 @@ void M68kDisassembler::decodeReg(
 }
 
 void M68kDisassembler::decodeImm(MCInst &Instr, unsigned Bead,
-                                 uint64_t Value, unsigned &NumRead) const {
+                                 uint64_t Value, unsigned &NumRead,
+                                 unsigned &Scratch) const {
   unsigned Op = Bead & 0xf;
-  MCOperand &Operand = getOperandImmAtIndex(Instr, Bead);
-
-  LLVM_DEBUG(errs() << format("decodeImm %x >> %d - %x\n",
+  LLVM_DEBUG(errs() << format("decodeImm %" PRIx64 " >> %d - %x\n",
                               Value, (unsigned)NumRead, Bead));
 
   unsigned NumToRead;
@@ -326,11 +316,10 @@ void M68kDisassembler::decodeImm(MCInst &Instr, unsigned Bead,
     llvm_unreachable("invalid imm");
   }
 
-  uint64_t Bits = (Value >> NumRead) & ((1 << NumToRead) - 1);
+  uint64_t Mask = (((uint64_t)1) << NumToRead) - 1;
+  uint64_t Bits = (Value >> NumRead) & Mask;
+  Scratch = (Scratch << NumToRead) | Bits;
   NumRead += NumToRead;
-
-  assert(!Operand.isValid() && "Operand set twice");
-  Operand = MCOperand::createImm(Bits);
 }
 
 DecodeStatus M68kDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
@@ -378,17 +367,21 @@ DecodeStatus M68kDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
   unsigned NumOperands = Desc.NumOperands;
   unsigned NumRead = 0;
 
-  while (Instr.size() < NumOperands) {
-    Instr.addOperand(MCOperand());
-  }
-
   // Now use the beads to decode the operands.
-  RegisterList Registers(NumOperands, 0);
+  enum class OperandType {
+    Invalid,
+    Reg,
+    Imm,
+  };
+
+  SmallVector<OperandType, 6> OpType(NumOperands, OperandType::Invalid);
+  SmallVector<unsigned, 6> Scratch(NumOperands, 0);
   for (const uint8_t* PartPtr = M68k::getMCInstrBeads(Instr.getOpcode());
        *PartPtr; ++PartPtr) {
     uint8_t Bead = *PartPtr;
     unsigned Ext = Bead >> 4;
     unsigned Op = Bead & 0xf;
+    unsigned MIOpIdx;
 
     switch (Op) {
     case M68kBeads::Ctrl:
@@ -419,7 +412,12 @@ DecodeStatus M68kDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
     case M68kBeads::DA:
     case M68kBeads::DReg:
     case M68kBeads::Reg:
-      decodeReg(Instr, Bead, Value, NumRead, Registers);
+      MIOpIdx = getRegOperandIndex(Instr, Bead);
+      assert(((OpType[MIOpIdx] == OperandType::Invalid) ||
+              (OpType[MIOpIdx] == OperandType::Reg)) &&
+             "operands cannot change type");
+      OpType[MIOpIdx] = OperandType::Reg;
+      decodeReg(Instr, Bead, Value, NumRead, Scratch[MIOpIdx]);
       break;
 
     case M68kBeads::Disp8:
@@ -427,7 +425,12 @@ DecodeStatus M68kDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
     case M68kBeads::Imm16:
     case M68kBeads::Imm32:
     case M68kBeads::Imm3:
-      decodeImm(Instr, Bead, Value, NumRead);
+      MIOpIdx = getImmOperandIndex(Instr, Bead);
+      assert(((OpType[MIOpIdx] == OperandType::Invalid) ||
+             (OpType[MIOpIdx] == OperandType::Imm)) &&
+             "operands cannot change type");
+      OpType[MIOpIdx] = OperandType::Imm;
+      decodeImm(Instr, Bead, Value, NumRead, Scratch[MIOpIdx]);
       break;
 
     default:
@@ -435,16 +438,20 @@ DecodeStatus M68kDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
     }
   }
 
-  for (unsigned R = 0; R < Registers.size(); ++R) {
-    unsigned Value = Registers[R];
-    if (!(Value & 0x10)) {
-      continue;
+  // Create the operands from our scratch space.
+  for (unsigned O = 0; O < NumOperands; ++O) {
+    switch (OpType[O]) {
+    case OperandType::Invalid:
+      assert(false && "operand not parsed");
+
+    case OperandType::Imm:
+      Instr.addOperand(MCOperand::createImm(Scratch[O]));
+      break;
+
+    case OperandType::Reg:
+      Instr.addOperand(MCOperand::createReg(RegisterDecode[Scratch[O]]));
+      break;
     }
-
-    Instr.getOperand(R) = MCOperand::createReg(RegisterDecode[Value & 0xF]);
-
-    LLVM_DEBUG(errs() << "decoding " << format("%x", Value & 0xF)
-           << " to " << RegisterDecode[Value & 0xF] << "\n");
   }
 
   assert((NumRead == Size * 8) && "wrong number of bits consumed");
