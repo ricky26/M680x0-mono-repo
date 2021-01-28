@@ -60,14 +60,14 @@ defm D5 : MxDataRegister<5, "d5">;
 defm D6 : MxDataRegister<6, "d6">;
 defm D7 : MxDataRegister<7, "d7">;
 
-defm A0 : MxDataRegister<0, "a0">;
-defm A1 : MxDataRegister<1, "a1">;
-defm A2 : MxDataRegister<2, "a2">;
-defm A3 : MxDataRegister<3, "a3">;
-defm A4 : MxDataRegister<4, "a4">;
-defm BP : MxDataRegister<5, "bp", ["a5"]>;
-defm FP : MxDataRegister<6, "fp", ["a6"]>;
-defm SP : MxDataRegister<7, "sp", ["usp", "ssp", "isp", "a7"]>;
+defm A0 : MxAddressRegister<0, "a0">;
+defm A1 : MxAddressRegister<1, "a1">;
+defm A2 : MxAddressRegister<2, "a2">;
+defm A3 : MxAddressRegister<3, "a3">;
+defm A4 : MxAddressRegister<4, "a4">;
+defm BP : MxAddressRegister<5, "a5", ["bp"]>;
+defm FP : MxAddressRegister<6, "a6", ["fp"]>;
+defm SP : MxAddressRegister<7, "sp", ["usp", "ssp", "isp", "a7"]>;
 
 // TODO get rid of "pseudo" registers and use just MxReg variants and use
 // HWEncoding's other 13 bits to encode type(and potentially other info) of
